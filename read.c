@@ -1,4 +1,4 @@
-#include "simple_shell.h"
+#include "shell.h"
 
 void display_prompt() {
     printf(":) ");
