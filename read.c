@@ -1,57 +1,39 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-
-#define MAX_INPUT_SIZE 1024
+#include "simple_shell.h"
 
 void display_prompt() {
-    printf("#cisfun$ ");
+    printf(":) ");
     fflush(stdout);
 }
 
-int main() {
-    char input[MAX_INPUT_SIZE];
+void print_environment() {
+    extern char **environ;
+    for (char **env = environ; *env != NULL; env++) {
+        printf("%s\n", *env);
+    }
+}
 
-    while (1) {
-        display_prompt();
+void execute_command(char *args[]) {
+    // Fork a new process only if the command exists in the PATH
+    pid_t pid = fork();
 
-        // Read user input
-        if (fgets(input, sizeof(input), stdin) == NULL) {
-            // Handle end of file (Ctrl+D)
-            printf("\n");
-            break;
-        }
+    if (pid == -1) {
+        perror("fork");
+        exit(EXIT_FAILURE);
+    } else if (pid == 0) {
+        // Child process
+        execvp(args[0], args);
 
-        // Remove the newline character
-        input[strcspn(input, "\n")] = '\0';
+        // If exec fails, print an error
+        perror("exec");
+        exit(EXIT_FAILURE);
+    } else {
+        // Parent process
+        int status;
+        waitpid(pid, &status, 0);
 
-        // Fork a new process
-        pid_t pid = fork();
-
-        if (pid == -1) {
-            perror("fork");
-            exit(EXIT_FAILURE);
-        } else if (pid == 0) {
-            // Child process
-            execlp(input, input, (char *)NULL);
-
-            // If exec fails, print an error
-            perror("exec");
-            exit(EXIT_FAILURE);
-        } else {
-            // Parent process
-            int status;
-            waitpid(pid, &status, 0);
-
-            // Check if the child process terminated successfully
-            if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-                fprintf(stderr, "./shell: %s: No such file or directory\n", input);
-            }
+        // Check if the child process terminated successfully
+        if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+            fprintf(stderr, ":) %s: command not found\n", args[0]);
         }
     }
-
-    return 0;
 }
