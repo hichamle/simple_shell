@@ -1,17 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-
-#define MAX_INPUT_SIZE 1024
-#define MAX_ARGS 64
-
-void display_prompt() {
-    printf("#cisfun$ ");
-    fflush(stdout);
-}
+#include "shell.h"
 
 int main() {
     char input[MAX_INPUT_SIZE];
@@ -43,28 +30,14 @@ int main() {
         // Null-terminate the array
         args[arg_count] = NULL;
 
-        // Fork a new process
-        pid_t pid = fork();
-
-        if (pid == -1) {
-            perror("fork");
-            exit(EXIT_FAILURE);
-        } else if (pid == 0) {
-            // Child process
-            execvp(args[0], args);
-
-            // If exec fails, print an error
-            perror("exec");
-            exit(EXIT_FAILURE);
-        } else {
-            // Parent process
-            int status;
-            waitpid(pid, &status, 0);
-
-            // Check if the child process terminated successfully
-            if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-                fprintf(stderr, "./shell: %s: command not found\n", args[0]);
-            }
+        // Check for built-in commands
+        if (args[0] != NULL && strcmp(args[0], "exit") == 0) {
+            printf("Goodbye!\n");
+            exit(EXIT_SUCCESS);
+        } else if (args[0] != NULL && strcmp(args[0], "env") == 0) {
+            print_environment();
+        } else if (args[0] != NULL) {
+            execute_command(args);
         }
     }
 
